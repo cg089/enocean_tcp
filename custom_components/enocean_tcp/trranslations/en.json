@@ -3,8 +3,8 @@
   "config": {
     "step": {
       "user": {
-        "title": "EnOcean TCP konfigurieren",
-        "description": "Verbinde dich mit einem EnOcean‑Stick, der ESP3 über TCP bereitstellt.",
+        "title": "Configure EnOcean TCP",
+        "description": "Connect to an EnOcean stick exposing ESP3 over TCP.",
         "data": {
           "host": "Host/IP",
           "port": "Port"
@@ -15,7 +15,7 @@
       "step": {
         "init": {
           "data": {
-            "reconnect_interval": "Reconnect‑Intervall (Sekunden)"
+            "reconnect_interval": "Reconnect interval (seconds)"
           }
         }
       }

@@ -1,0 +1,32 @@
+send_raw:
+  name: Send raw ESP3
+  description: "Sende ein EnOcean‑ESP3 Telegramm. Entweder komplettes RAW‑Hex (mit 55...) ODER Triplet (pt/data/opt)."
+  fields:
+    raw:
+      name: RAW Frame (Hex)
+      description: "Vollständiger ESP3‑Frame als Hex, beginnend mit 55. Beispiel: 55 00 07 07 01 A5 02 01 12 34 56 80 01 00"
+      example: "55 00 07 07 01 A5 02 01 12 34 56 80 01 00"
+      required: false
+      selector:
+        text:
+    pt:
+      name: Packet Type
+      description: "ESP3 Packet Type als Zahl/Hex (z. B. 1 für ERP1)."
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+    data:
+      name: DATA (Hex)
+      description: "Reiner DATA‑Block als Hex (ohne Leerzeichen optional)."
+      required: false
+      selector:
+        text:
+    opt:
+      name: OPT (Hex)
+      description: "Optionaler OPT‑Block als Hex."
+      required: false
+      selector:
+        text:

@@ -3,12 +3,11 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_RECONNECT, DEFAULT_RECONNECT, SERVICE_SEND_RAW
 from .hub import EnOceanTCPHub
 
-PLATFORMS: list = []  # v1: Nur Events+Services
+PLATFORMS: list[str] = ["sensor", "binary_sensor"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     host = entry.data[CONF_HOST]
@@ -17,11 +16,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hub = EnOceanTCPHub(hass, host, port, reconnect)
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = hub
-
-    try:
-        await hub.start()
-    except Exception as e:  # noqa
-        raise ConfigEntryNotReady(str(e))
 
     # Service: RAW (vollständiger ESP3‑Frame) ODER Triplet (pt/data/opt)
     async def _send_raw(call: ServiceCall):
@@ -36,20 +30,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         else:
             raise vol.Invalid("Entweder 'raw' ODER ('pt' und 'data') angeben")
 
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_SEND_RAW,
-        _send_raw,
-    )
+    hass.services.async_register(DOMAIN, SERVICE_SEND_RAW, _send_raw)
+
+    try:
+        # Plattformen zuerst laden; wenn das klappt, starten wir den Hub
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        await hub.start()
+    except Exception as e:
+        # Sicherstellen, dass kein Task hängen bleibt
+        try:
+            await hub.stop()
+        finally:
+            hass.services.async_remove(DOMAIN, SERVICE_SEND_RAW)
+            hass.data[DOMAIN].pop(entry.entry_id, None)
+        # Für HA signalisieren, dass das Setup fehlgeschlagen ist
+        raise ConfigEntryNotReady(str(e))
 
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
     hub: EnOceanTCPHub = hass.data[DOMAIN][entry.entry_id]
     await hub.stop()
+
     hass.services.async_remove(DOMAIN, SERVICE_SEND_RAW)
     hass.data[DOMAIN].pop(entry.entry_id, None)
-    return True
+    return unload_ok
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry):
     await async_unload_entry(hass, entry)
